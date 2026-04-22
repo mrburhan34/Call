@@ -16,11 +16,7 @@ body {
   align-items: center;
   height: 100vh;
 }
-
-.container {
-  text-align: center;
-}
-
+.container { text-align: center; }
 button {
   padding: 15px 25px;
   font-size: 18px;
@@ -29,26 +25,10 @@ button {
   margin: 10px;
   cursor: pointer;
 }
-
-#startBtn {
-  background: #22c55e;
-}
-
-#endBtn {
-  background: #ef4444;
-}
-
-.status {
-  margin-top: 20px;
-  font-size: 18px;
-}
-
-.timer {
-  margin-top: 10px;
-  font-size: 16px;
-  color: #94a3b8;
-}
-
+#startBtn { background: #22c55e; }
+#endBtn { background: #ef4444; }
+.status { margin-top: 20px; }
+.timer { margin-top: 10px; color: #94a3b8; }
 .mic {
   width: 80px;
   height: 80px;
@@ -58,7 +38,6 @@ button {
   animation: pulse 1.5s infinite;
   display: none;
 }
-
 @keyframes pulse {
   0% { transform: scale(1); opacity: 0.8; }
   50% { transform: scale(1.2); opacity: 0.4; }
@@ -84,11 +63,11 @@ button {
 <script src="https://cdn.vapi.ai/web.js"></script>
 
 <script>
-const vapi = new Vapi("pk_22488816-47ce-443b-bef3-c7946cfa6f81"); // 🔑 Replace
-const assistantId = "asst_d20b7146-f6c0-4de9-8925-e500f90db010"; // 🔑 Replace
+// ✅ USE YOUR WEB KEY (IMPORTANT)
+const vapi = new Vapi("5a1d5959-038e-48b5-b20e-ecf11d02148d");
 
-let callStartTime = null;
-let timerInterval = null;
+let timerInterval;
+let startTime;
 
 const startBtn = document.getElementById("startBtn");
 const endBtn = document.getElementById("endBtn");
@@ -96,23 +75,11 @@ const status = document.getElementById("status");
 const timer = document.getElementById("timer");
 const mic = document.getElementById("mic");
 
-function formatTime(seconds) {
+function updateTimer() {
+  const seconds = Math.floor((Date.now() - startTime) / 1000);
   const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
   const secs = String(seconds % 60).padStart(2, '0');
-  return `${mins}:${secs}`;
-}
-
-function startTimer() {
-  callStartTime = Date.now();
-  timerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-    timer.textContent = formatTime(elapsed);
-  }, 1000);
-}
-
-function stopTimer() {
-  clearInterval(timerInterval);
-  timer.textContent = "00:00";
+  timer.textContent = `${mins}:${secs}`;
 }
 
 startBtn.onclick = async () => {
@@ -120,54 +87,43 @@ startBtn.onclick = async () => {
     status.textContent = "Connecting...";
     mic.style.display = "block";
 
-    await vapi.start({
-      assistantId: assistantId
-    });
+    // ❗ NO assistantId needed
+    await vapi.start();
 
-    status.textContent = "In Call";
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 1000);
+
     startBtn.disabled = true;
     endBtn.disabled = false;
 
-    startTimer();
-
-  } catch (err) {
-    console.error(err);
-    status.textContent = "Error starting call";
+  } catch (e) {
+    console.error(e);
+    status.textContent = "Failed to start call";
     mic.style.display = "none";
   }
 };
 
 endBtn.onclick = () => {
   vapi.stop();
-
-  status.textContent = "Call Ended";
-  mic.style.display = "none";
-
-  startBtn.disabled = false;
-  endBtn.disabled = true;
-
-  stopTimer();
 };
+
+vapi.on("call-start", () => {
+  status.textContent = "In Call";
+});
 
 vapi.on("call-end", () => {
   status.textContent = "Call Ended";
   mic.style.display = "none";
+  clearInterval(timerInterval);
+  timer.textContent = "00:00";
 
   startBtn.disabled = false;
   endBtn.disabled = true;
-
-  stopTimer();
 });
 
 vapi.on("error", (e) => {
   console.error(e);
   status.textContent = "Error occurred";
-  mic.style.display = "none";
-
-  startBtn.disabled = false;
-  endBtn.disabled = true;
-
-  stopTimer();
 });
 </script>
 
