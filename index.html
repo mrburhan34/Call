@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Call</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  text-align: center;
+}
+
+button {
+  padding: 15px 25px;
+  font-size: 18px;
+  border: none;
+  border-radius: 10px;
+  margin: 10px;
+  cursor: pointer;
+}
+
+#startBtn {
+  background: #22c55e;
+}
+
+#endBtn {
+  background: #ef4444;
+}
+
+.status {
+  margin-top: 20px;
+  font-size: 18px;
+}
+
+.timer {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #94a3b8;
+}
+
+.mic {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #22c55e;
+  margin: 20px auto;
+  animation: pulse 1.5s infinite;
+  display: none;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>📞 AI Appointment Call</h1>
+
+  <div class="mic" id="mic"></div>
+
+  <button id="startBtn">Start Call</button>
+  <button id="endBtn" disabled>End Call</button>
+
+  <div class="status" id="status">Idle</div>
+  <div class="timer" id="timer">00:00</div>
+</div>
+
+<script src="https://cdn.vapi.ai/web.js"></script>
+
+<script>
+const vapi = new Vapi("22488816-47ce-443b-bef3-c7946cfa6f81"); // 🔑 Replace
+const assistantId = "d20b7146-f6c0-4de9-8925-e500f90db010"; // 🔑 Replace
+
+let callStartTime = null;
+let timerInterval = null;
+
+const startBtn = document.getElementById("startBtn");
+const endBtn = document.getElementById("endBtn");
+const status = document.getElementById("status");
+const timer = document.getElementById("timer");
+const mic = document.getElementById("mic");
+
+function formatTime(seconds) {
+  const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const secs = String(seconds % 60).padStart(2, '0');
+  return `${mins}:${secs}`;
+}
+
+function startTimer() {
+  callStartTime = Date.now();
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+    timer.textContent = formatTime(elapsed);
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timer.textContent = "00:00";
+}
+
+startBtn.onclick = async () => {
+  try {
+    status.textContent = "Connecting...";
+    mic.style.display = "block";
+
+    await vapi.start({
+      assistantId: assistantId
+    });
+
+    status.textContent = "In Call";
+    startBtn.disabled = true;
+    endBtn.disabled = false;
+
+    startTimer();
+
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Error starting call";
+    mic.style.display = "none";
+  }
+};
+
+endBtn.onclick = () => {
+  vapi.stop();
+
+  status.textContent = "Call Ended";
+  mic.style.display = "none";
+
+  startBtn.disabled = false;
+  endBtn.disabled = true;
+
+  stopTimer();
+};
+
+vapi.on("call-end", () => {
+  status.textContent = "Call Ended";
+  mic.style.display = "none";
+
+  startBtn.disabled = false;
+  endBtn.disabled = true;
+
+  stopTimer();
+});
+
+vapi.on("error", (e) => {
+  console.error(e);
+  status.textContent = "Error occurred";
+  mic.style.display = "none";
+
+  startBtn.disabled = false;
+  endBtn.disabled = true;
+
+  stopTimer();
+});
+</script>
+
+</body>
+</html>
